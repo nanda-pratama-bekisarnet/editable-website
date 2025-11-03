@@ -1,6 +1,6 @@
 import slugify from 'slugify';
 import { SHORTCUTS } from './constants';
-import Database from 'better-sqlite3';
+//import Database from 'better-sqlite3';
 import { nanoid } from '$lib/util';
 import { DB_PATH, ADMIN_PASSWORD } from '$env/static/private';
 import { Blob } from 'node:buffer';
