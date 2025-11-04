@@ -1,7 +1,7 @@
 import slugify from 'slugify';
 import { SHORTCUTS } from './constants';
 import { nanoid } from '$lib/util';
-import { Blob } from 'node:buffer';
+//import { Blob } from 'node:buffer';
 
 /**
  * Creates a new article
