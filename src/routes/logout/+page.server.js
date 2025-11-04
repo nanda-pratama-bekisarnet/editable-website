@@ -5,7 +5,10 @@ export async function load({ cookies }) {
   const sessionId = cookies.get('sessionid');
   try {
     await destroySession(sessionId);
-    cookies.delete('sessionid');
+
+    cookies.delete('sessionid', {
+      path: '/' // ✅ required, must match what you used in cookies.set
+    });
   } catch (err) {
     console.error(err);
     return fail(400, { incorrect: true });
