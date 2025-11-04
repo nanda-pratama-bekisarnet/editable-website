@@ -1,11 +1,10 @@
-<script lang="ts">
-	import favicon from '$lib/assets/favicon.svg';
+<script>
+  import '@fontsource/jost/400.css';
+  import '@fontsource/jost/500.css';
+  import '@fontsource/jost/600.css';
+  import '@fontsource/jost/700.css';
 
-	let { children } = $props();
+  import '../app.css';
 </script>
 
-<svelte:head>
-	<link rel="icon" href={favicon} />
-</svelte:head>
-
-{@render children()}
+<slot />
