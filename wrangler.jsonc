@@ -1,8 +1,11 @@
 {
- "name": "editable_website",
- "compatibility_date": "2025-01-01",
- "pages_build_output_dir": ".svelte-kit/cloudflare",
- "d1_databases": [
+  "name": "editable_website",
+  "compatibility_date": "2025-01-01",
+  "pages_build_output_dir": ".svelte-kit/cloudflare",
+  "vars": {
+    "ADMIN_PASSWORD": "supersecretpassword"
+  },
+  "d1_databases": [
     {
       "binding": "DB",
       "database_name": "editable_website_dev",
