@@ -1,16 +1,11 @@
-import { fail } from '@sveltejs/kit';
 import { destroySession } from '$lib/api';
+import { json } from '@sveltejs/kit';
 
-export async function load({ cookies }) {
+export async function POST({ cookies, platform }) {
   const sessionId = cookies.get('sessionid');
-  try {
-    await destroySession(sessionId);
-
-    cookies.delete('sessionid', {
-      path: '/' // ✅ required, must match what you used in cookies.set
-    });
-  } catch (err) {
-    console.error(err);
-    return fail(400, { incorrect: true });
+  if (sessionId) {
+    await destroySession(platform, sessionId);
+    cookies.delete('sessionid', { path: '/' });
   }
+  return json({ success: true });
 }

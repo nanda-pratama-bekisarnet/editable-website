@@ -1,27 +1,19 @@
-import { redirect, fail } from '@sveltejs/kit';
 import { authenticate } from '$lib/api';
+import { json } from '@sveltejs/kit';
 
-export const actions = {
-  default: async ({ cookies, request }) => {
-    const data = await request.formData();
-    const password = data.get('password');
-    const sessionTimeout = 60 * 24 * 7; // one week in minutes
+export async function POST({ request, cookies, platform }) {
+  const { password } = await request.json();
 
-    try {
-      const { sessionId } = await authenticate(password, sessionTimeout);
+  try {
+    const { sessionId } = await authenticate(platform, password, 60); // session timeout 60 mins
+    cookies.set('sessionid', sessionId, {
+      httpOnly: true,
+      path: '/',
+      maxAge: 60 * 60 // 1 hour
+    });
 
-      cookies.set('sessionid', sessionId, {
-        path: '/',                 // ✅ required
-        httpOnly: true,            // prevents client JS from reading it
-        maxAge: sessionTimeout * 60, // convert minutes to seconds
-        sameSite: 'strict',        // optional but recommended
-        secure: process.env.NODE_ENV === 'production' // only over HTTPS in prod
-      });
-    } catch (err) {
-      console.error(err);
-      return fail(400, { incorrect: true });
-    }
-
-    throw redirect(303, '/');
+    return json({ success: true });
+  } catch (err) {
+    return json({ success: false, message: err.message }, { status: 401 });
   }
-};
+}
