@@ -267,4 +267,21 @@ export async function storeAsset(platform, asset_id, file) {
  * Get asset
  */
 export async function getAsset(platform, asset_id) {
-  const db
+  const db = getDB(platform);
+  const result = await db.prepare(`
+    SELECT asset_id, mime_type, updated_at, size, data
+    FROM assets
+    WHERE asset_id = ?
+  `).bind(asset_id).all();
+
+  const row = result.results[0];
+  if (!row) return null;
+
+  return {
+    filename: row.asset_id.split('/').slice(-1)[0],
+    mimeType: row.mime_type,
+    lastModified: row.updated_at,
+    size: row.size,
+    data: new Blob([row.data], { type: row.mime_type })
+  };
+}
