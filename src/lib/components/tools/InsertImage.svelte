@@ -17,10 +17,10 @@
     const file = fileInput.files[0];
 
     // We convert all uploads to the WEBP image format
-    const content_type = is_safari() ? 'image/jpeg' : 'image/webp';
+    const content_type = is_safari() ? 'image/jpeg' : 'image/jpeg';
 
     // We convert all uploads to the WEBP image format if possible
-    const extension = is_safari() ? 'jpg' : 'webp';
+    const extension = is_safari() ? 'jpg' : 'jpg';
 
     const path = [['images', nanoid()].join('/'), extension].join('.');
     const maxWidth = 1440;
