@@ -1,5 +1,3 @@
-import { randomUUID } from 'crypto'; // Node 18+ or use nanoid
-
 const FOLDER = 'assets/images/';
 
 export const POST = async ({ request, env }) => {
@@ -10,7 +8,7 @@ export const POST = async ({ request, env }) => {
 
   const arrayBuffer = await file.arrayBuffer();
   const size = arrayBuffer.byteLength;
-  const asset_id = FOLDER + randomUUID(); // logical folder prefix
+  const asset_id = FOLDER + crypto.randomUUID(); // Web Crypto API
   const updated_at = new Date().toISOString();
 
   await env.DB.prepare(`
