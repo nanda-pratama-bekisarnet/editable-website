@@ -181,10 +181,16 @@ export async function deleteArticle(platform, slug, currentUser) {
  * Get current user
  */
 export async function getCurrentUser(platform, session_id) {
+  if (!session_id) return null; // ✅ Prevent binding undefined
+
   const db = platform.env.DB;
-  const stmt = await db.prepare(
-    'SELECT session_id, expires FROM sessions WHERE session_id = ? AND expires > ?'
-  ).bind(session_id, new Date().toISOString()).get();
+
+  const stmt = await db
+    .prepare(
+      'SELECT session_id, expires FROM sessions WHERE session_id = ? AND expires > ?'
+    )
+    .bind(session_id, new Date().toISOString())
+    .get();
 
   if (stmt) {
     return { name: 'Admin' };
