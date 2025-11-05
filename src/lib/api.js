@@ -1,18 +1,32 @@
 import slugify from 'slugify';
 import { SHORTCUTS } from './constants';
 import { nanoid } from '$lib/util';
-//import { Blob } from 'node:buffer';
+
+/**
+ * Helpers
+ */
+function __getDateTimeMinutesAfter(minutes) {
+  return new Date(Date.now() + minutes * 60000).toISOString();
+}
+
+/**
+ * Get database from platform
+ */
+function getDB(platform) {
+  if (!platform?.env?.DB) throw new Error('Database not found on platform.env.DB');
+  return platform.env.DB;
+}
 
 /**
  * Creates a new article
  */
 export async function createArticle(platform, title, content, teaser, currentUser) {
   if (!currentUser) throw new Error('Not authorized');
-  const db = platform.env.DB;
+  const db = getDB(platform);
 
   let slug = slugify(title, { lower: true, strict: true });
   const articleExists = await db.prepare('SELECT * FROM articles WHERE slug = ?').bind(slug).get();
-  if (articleExists) slug = slug + '-' + nanoid();
+  if (articleExists) slug = `${slug}-${nanoid()}`;
 
   await db.prepare(`
     INSERT INTO articles (slug, title, content, teaser, published_at)
@@ -27,7 +41,7 @@ export async function createArticle(platform, title, content, teaser, currentUse
  */
 export async function updateArticle(platform, slug, title, content, teaser, currentUser) {
   if (!currentUser) throw new Error('Not authorized');
-  const db = platform.env.DB;
+  const db = getDB(platform);
 
   await db.prepare(`
     UPDATE articles
@@ -42,7 +56,7 @@ export async function updateArticle(platform, slug, title, content, teaser, curr
  * Authentication
  */
 export async function authenticate(platform, password, sessionTimeout) {
-  const db = platform.env.DB;
+  const db = getDB(platform);
   const expires = __getDateTimeMinutesAfter(sessionTimeout);
   const adminPassword = platform.env.ADMIN_PASSWORD;
 
@@ -59,7 +73,7 @@ export async function authenticate(platform, password, sessionTimeout) {
  * Destroy session
  */
 export async function destroySession(platform, sessionId) {
-  const db = platform.env.DB;
+  const db = getDB(platform);
   await db.prepare('DELETE FROM sessions WHERE session_id = ?').bind(sessionId).run();
   return true;
 }
@@ -68,22 +82,10 @@ export async function destroySession(platform, sessionId) {
  * List all available articles (newest first)
  */
 export async function getArticles(platform, currentUser) {
-  const db = platform.env.DB;
-  let query;
-
-  if (currentUser) {
-    query = `
-      SELECT *, COALESCE(published_at, updated_at, created_at) AS modified_at
-      FROM articles
-      ORDER BY modified_at DESC
-    `;
-  } else {
-    query = `
-      SELECT * FROM articles
-      WHERE published_at IS NOT NULL
-      ORDER BY published_at DESC
-    `;
-  }
+  const db = getDB(platform);
+  const query = currentUser
+    ? `SELECT *, COALESCE(published_at, updated_at, created_at) AS modified_at FROM articles ORDER BY modified_at DESC`
+    : `SELECT * FROM articles WHERE published_at IS NOT NULL ORDER BY published_at DESC`;
 
   const result = await db.prepare(query).all();
   return result.results;
@@ -93,7 +95,7 @@ export async function getArticles(platform, currentUser) {
  * Determine next article
  */
 export async function getNextArticle(platform, slug) {
-  const db = platform.env.DB;
+  const db = getDB(platform);
   const query = `
     WITH previous_published AS (
       SELECT title, teaser, slug, published_at
@@ -118,33 +120,23 @@ export async function getNextArticle(platform, slug) {
     ORDER BY published_at ASC
     LIMIT 1;
   `;
-  const result = await db.prepare(query).bind(slug, slug).get();
-  return result;
+  return await db.prepare(query).bind(slug, slug).get();
 }
 
 /**
  * Search for content
  */
 export async function search(platform, q, currentUser) {
-  const db = platform.env.DB;
-  let query;
-  if (currentUser) {
-    query = `
-      SELECT title AS name, '/blog/' || slug AS url,
-      COALESCE(published_at, updated_at, created_at) AS modified_at
-      FROM articles
-      WHERE title LIKE ? COLLATE NOCASE
-      ORDER BY modified_at DESC;
-    `;
-  } else {
-    query = `
-      SELECT title AS name, '/blog/' || slug AS url,
-      COALESCE(published_at, updated_at, created_at) AS modified_at
-      FROM articles
-      WHERE title LIKE ? COLLATE NOCASE AND published_at IS NOT NULL
-      ORDER BY modified_at DESC;
-    `;
-  }
+  const db = getDB(platform);
+  const query = currentUser
+    ? `SELECT title AS name, '/blog/' || slug AS url, COALESCE(published_at, updated_at, created_at) AS modified_at
+       FROM articles
+       WHERE title LIKE ? COLLATE NOCASE
+       ORDER BY modified_at DESC;`
+    : `SELECT title AS name, '/blog/' || slug AS url, COALESCE(published_at, updated_at, created_at) AS modified_at
+       FROM articles
+       WHERE title LIKE ? COLLATE NOCASE AND published_at IS NOT NULL
+       ORDER BY modified_at DESC;`;
 
   const result = await db.prepare(query).bind(`%${q}%`).all();
   const results = result.results;
@@ -162,7 +154,7 @@ export async function search(platform, q, currentUser) {
  * Get article by slug
  */
 export async function getArticleBySlug(platform, slug) {
-  const db = platform.env.DB;
+  const db = getDB(platform);
   return await db.prepare('SELECT * FROM articles WHERE slug = ?').bind(slug).get();
 }
 
@@ -171,8 +163,7 @@ export async function getArticleBySlug(platform, slug) {
  */
 export async function deleteArticle(platform, slug, currentUser) {
   if (!currentUser) throw new Error('Not authorized');
-  const db = platform.env.DB;
-
+  const db = getDB(platform);
   const result = await db.prepare('DELETE FROM articles WHERE slug = ?').bind(slug).run();
   return result.success;
 }
@@ -181,22 +172,14 @@ export async function deleteArticle(platform, slug, currentUser) {
  * Get current user
  */
 export async function getCurrentUser(platform, session_id) {
-  if (!session_id) return null; // ✅ Prevent binding undefined
+  if (!session_id) return null;
+  const db = getDB(platform);
 
-  const db = platform.env.DB;
+  const stmt = await db.prepare(
+    'SELECT session_id, expires FROM sessions WHERE session_id = ? AND expires > ?'
+  ).bind(session_id, new Date().toISOString()).get();
 
-  const stmt = await db
-    .prepare(
-      'SELECT session_id, expires FROM sessions WHERE session_id = ? AND expires > ?'
-    )
-    .bind(session_id, new Date().toISOString())
-    .get();
-
-  if (stmt) {
-    return { name: 'Admin' };
-  } else {
-    return null;
-  }
+  return stmt ? { name: 'Admin' } : null;
 }
 
 /**
@@ -204,7 +187,7 @@ export async function getCurrentUser(platform, session_id) {
  */
 export async function createOrUpdatePage(platform, page_id, page, currentUser) {
   if (!currentUser) throw new Error('Not authorized');
-  const db = platform.env.DB;
+  const db = getDB(platform);
 
   const pageExists = await db.prepare('SELECT page_id FROM pages WHERE page_id = ?').bind(page_id).get();
   const jsonData = JSON.stringify(page);
@@ -225,7 +208,7 @@ export async function createOrUpdatePage(platform, page_id, page, currentUser) {
  * Get page data
  */
 export async function getPage(platform, page_id) {
-  const db = platform.env.DB;
+  const db = getDB(platform);
   const page = await db.prepare('SELECT data FROM pages WHERE page_id = ?').bind(page_id).get();
   return page?.data ? JSON.parse(page.data) : null;
 }
@@ -234,10 +217,8 @@ export async function getPage(platform, page_id) {
  * Counter helper
  */
 export async function createOrUpdateCounter(platform, counter_id) {
-  const db = platform.env.DB;
-  const counterExists = await db.prepare('SELECT counter_id FROM counters WHERE counter_id = ?')
-    .bind(counter_id)
-    .get();
+  const db = getDB(platform);
+  const counterExists = await db.prepare('SELECT counter_id FROM counters WHERE counter_id = ?').bind(counter_id).get();
 
   if (counterExists) {
     return await db.prepare(
@@ -254,7 +235,7 @@ export async function createOrUpdateCounter(platform, counter_id) {
  * Store asset
  */
 export async function storeAsset(platform, asset_id, file) {
-  const db = platform.env.DB;
+  const db = getDB(platform);
   const arrayBuffer = await file.arrayBuffer();
   const buffer = new Uint8Array(arrayBuffer);
 
@@ -276,13 +257,12 @@ export async function storeAsset(platform, asset_id, file) {
  * Get asset
  */
 export async function getAsset(platform, asset_id) {
-  const db = platform.env.DB;
-  const sql = `
+  const db = getDB(platform);
+  const row = await db.prepare(`
     SELECT asset_id, mime_type, updated_at, size, data
     FROM assets
     WHERE asset_id = ?
-  `;
-  const row = await db.prepare(sql).bind(asset_id).get();
+  `).bind(asset_id).get();
 
   if (!row) return null;
 
@@ -293,11 +273,4 @@ export async function getAsset(platform, asset_id) {
     size: row.size,
     data: new Blob([row.data], { type: row.mime_type })
   };
-}
-
-/**
- * Helpers
- */
-function __getDateTimeMinutesAfter(minutes) {
-  return new Date(Date.now() + minutes * 60000).toISOString();
 }
