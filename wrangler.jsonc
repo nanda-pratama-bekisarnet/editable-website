@@ -3,7 +3,8 @@
   "compatibility_date": "2025-01-01",
   "pages_build_output_dir": ".svelte-kit/cloudflare",
   "vars": {
-    "ADMIN_PASSWORD": "12345"
+    "ADMIN_PASSWORD": "12345",
+	"ORIGIN": "https://dev4.editable-website.pages.dev"
   },
   "d1_databases": [
     {
