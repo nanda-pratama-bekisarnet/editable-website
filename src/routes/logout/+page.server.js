@@ -1,13 +1,13 @@
 import { fail } from '@sveltejs/kit';
 import { destroySession } from '$lib/api';
 
-export async function load({ cookies }) {
+export async function load({ cookies, platform }) {
   const sessionId = cookies.get('sessionid');
   try {
-    await destroySession(sessionId);
+    await destroySession(platform, sessionId);
 
     cookies.delete('sessionid', {
-      path: '/' // ✅ required, must match what you used in cookies.set
+      path: '/' // must match what you used in cookies.set
     });
   } catch (err) {
     console.error(err);

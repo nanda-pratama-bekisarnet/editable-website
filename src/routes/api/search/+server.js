@@ -1,8 +1,11 @@
 import { search } from '$lib/api';
 import { json } from '@sveltejs/kit';
 
-export async function GET({ url, locals }) {
+export async function GET({ url, locals, platform }) {
   const currentUser = locals.user;
   const searchQuery = url.searchParams.get('q') || '';
-  return json(await search(searchQuery, currentUser));
+
+  const results = await search(platform, searchQuery, currentUser);
+
+  return json(results);
 }
