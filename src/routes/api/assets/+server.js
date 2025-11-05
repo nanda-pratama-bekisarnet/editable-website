@@ -8,7 +8,7 @@ export const POST = async ({ request, env }) => {
 
   const arrayBuffer = await file.arrayBuffer();
   const size = arrayBuffer.byteLength;
-  const asset_id = FOLDER + crypto.randomUUID(); // Web Crypto API
+  const asset_id = FOLDER + crypto.randomUUID(); // Web Crypto UUID
   const updated_at = new Date().toISOString();
 
   await env.DB.prepare(`
