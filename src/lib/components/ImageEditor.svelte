@@ -45,10 +45,10 @@
 
   async function uploadImage() {
     const file = fileInput.files[0];
-    const content_type = is_safari() ? 'image/jpeg' : 'image/jpeg';
+    const content_type = is_safari() ? 'image/jpeg' : 'image/webp';
 
     // We convert all uploads to the WEBP image format
-    const extension = is_safari() ? 'jpg' : 'jpg';
+    const extension = is_safari() ? 'jpg' : 'webp';
     const path = [['images', nanoid()].join('/'), extension].join('.');
     const croppedImage = await getCroppedImg(newSrc, cropDetail.pixels);
 
