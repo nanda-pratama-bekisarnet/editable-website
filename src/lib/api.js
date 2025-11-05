@@ -25,15 +25,16 @@ export async function createArticle(platform, title, content, teaser, currentUse
   const db = getDB(platform);
 
   let slug = slugify(title, { lower: true, strict: true });
-  const articleExists = await db.prepare('SELECT * FROM articles WHERE slug = ?').bind(slug).get();
-  if (articleExists) slug = `${slug}-${nanoid()}`;
+  const existsResult = await db.prepare('SELECT * FROM articles WHERE slug = ?').bind(slug).all();
+  if (existsResult.results.length > 0) slug = `${slug}-${nanoid()}`;
 
   await db.prepare(`
     INSERT INTO articles (slug, title, content, teaser, published_at)
     VALUES (?, ?, ?, ?, datetime('now'))
   `).bind(slug, title, content, teaser).run();
 
-  return await db.prepare('SELECT slug, created_at FROM articles WHERE slug = ?').bind(slug).get();
+  const result = await db.prepare('SELECT slug, created_at FROM articles WHERE slug = ?').bind(slug).all();
+  return result.results[0] || null;
 }
 
 /**
@@ -49,7 +50,8 @@ export async function updateArticle(platform, slug, title, content, teaser, curr
     WHERE slug = ?
   `).bind(title, content, teaser, slug).run();
 
-  return await db.prepare('SELECT slug, updated_at FROM articles WHERE slug = ?').bind(slug).get();
+  const result = await db.prepare('SELECT slug, updated_at FROM articles WHERE slug = ?').bind(slug).all();
+  return result.results[0] || null;
 }
 
 /**
@@ -120,7 +122,8 @@ export async function getNextArticle(platform, slug) {
     ORDER BY published_at ASC
     LIMIT 1;
   `;
-  return await db.prepare(query).bind(slug, slug).get();
+  const result = await db.prepare(query).bind(slug, slug).all();
+  return result.results[0] || null;
 }
 
 /**
@@ -155,7 +158,8 @@ export async function search(platform, q, currentUser) {
  */
 export async function getArticleBySlug(platform, slug) {
   const db = getDB(platform);
-  return await db.prepare('SELECT * FROM articles WHERE slug = ?').bind(slug).get();
+  const result = await db.prepare('SELECT * FROM articles WHERE slug = ?').bind(slug).all();
+  return result.results[0] || null;
 }
 
 /**
@@ -174,12 +178,11 @@ export async function deleteArticle(platform, slug, currentUser) {
 export async function getCurrentUser(platform, session_id) {
   if (!session_id) return null;
   const db = getDB(platform);
-
-  const stmt = await db.prepare(
+  const result = await db.prepare(
     'SELECT session_id, expires FROM sessions WHERE session_id = ? AND expires > ?'
-  ).bind(session_id, new Date().toISOString()).get();
-
-  return stmt ? { name: 'Admin' } : null;
+  ).bind(session_id, new Date().toISOString()).all();
+  const row = result.results[0];
+  return row ? { name: 'Admin' } : null;
 }
 
 /**
@@ -189,18 +192,21 @@ export async function createOrUpdatePage(platform, page_id, page, currentUser) {
   if (!currentUser) throw new Error('Not authorized');
   const db = getDB(platform);
 
-  const pageExists = await db.prepare('SELECT page_id FROM pages WHERE page_id = ?').bind(page_id).get();
+  const pageExistsResult = await db.prepare('SELECT page_id FROM pages WHERE page_id = ?').bind(page_id).all();
+  const pageExists = pageExistsResult.results[0];
   const jsonData = JSON.stringify(page);
   const now = new Date().toISOString();
 
   if (pageExists) {
-    return await db.prepare(
+    const updateResult = await db.prepare(
       'UPDATE pages SET data = ?, updated_at = ? WHERE page_id = ? RETURNING page_id'
-    ).bind(jsonData, now, page_id).get();
+    ).bind(jsonData, now, page_id).all();
+    return updateResult.results[0] || null;
   } else {
-    return await db.prepare(
-      'INSERT INTO pages (page_id, data, updated_at) values(?, ?, ?) RETURNING page_id'
-    ).bind(page_id, jsonData, now).get();
+    const insertResult = await db.prepare(
+      'INSERT INTO pages (page_id, data, updated_at) VALUES (?, ?, ?) RETURNING page_id'
+    ).bind(page_id, jsonData, now).all();
+    return insertResult.results[0] || null;
   }
 }
 
@@ -209,8 +215,9 @@ export async function createOrUpdatePage(platform, page_id, page, currentUser) {
  */
 export async function getPage(platform, page_id) {
   const db = getDB(platform);
-  const page = await db.prepare('SELECT data FROM pages WHERE page_id = ?').bind(page_id).get();
-  return page?.data ? JSON.parse(page.data) : null;
+  const result = await db.prepare('SELECT data FROM pages WHERE page_id = ?').bind(page_id).all();
+  const row = result.results[0];
+  return row?.data ? JSON.parse(row.data) : null;
 }
 
 /**
@@ -218,16 +225,19 @@ export async function getPage(platform, page_id) {
  */
 export async function createOrUpdateCounter(platform, counter_id) {
   const db = getDB(platform);
-  const counterExists = await db.prepare('SELECT counter_id FROM counters WHERE counter_id = ?').bind(counter_id).get();
+  const counterResult = await db.prepare('SELECT counter_id FROM counters WHERE counter_id = ?').bind(counter_id).all();
+  const counterExists = counterResult.results[0];
 
   if (counterExists) {
-    return await db.prepare(
+    const updateResult = await db.prepare(
       'UPDATE counters SET count = count + 1 WHERE counter_id = ? RETURNING count'
-    ).bind(counter_id).get();
+    ).bind(counter_id).all();
+    return updateResult.results[0] || null;
   } else {
-    return await db.prepare(
-      'INSERT INTO counters (counter_id, count) values(?, 1) RETURNING count'
-    ).bind(counter_id).get();
+    const insertResult = await db.prepare(
+      'INSERT INTO counters (counter_id, count) VALUES (?, 1) RETURNING count'
+    ).bind(counter_id).all();
+    return insertResult.results[0] || null;
   }
 }
 
@@ -257,20 +267,4 @@ export async function storeAsset(platform, asset_id, file) {
  * Get asset
  */
 export async function getAsset(platform, asset_id) {
-  const db = getDB(platform);
-  const row = await db.prepare(`
-    SELECT asset_id, mime_type, updated_at, size, data
-    FROM assets
-    WHERE asset_id = ?
-  `).bind(asset_id).get();
-
-  if (!row) return null;
-
-  return {
-    filename: row.asset_id.split('/').slice(-1)[0],
-    mimeType: row.mime_type,
-    lastModified: row.updated_at,
-    size: row.size,
-    data: new Blob([row.data], { type: row.mime_type })
-  };
-}
+  const db
