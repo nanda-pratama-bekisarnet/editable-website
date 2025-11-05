@@ -1,25 +1,24 @@
--- Cloudflare D1 migration: initialize schema
+pragma journal_mode = WAL;
 
--- Sessions table
+BEGIN TRANSACTION;
+
 CREATE TABLE IF NOT EXISTS sessions (
   session_id TEXT PRIMARY KEY,
   expires TEXT NOT NULL
 );
 
--- Pages table
 CREATE TABLE IF NOT EXISTS pages (
   page_id TEXT PRIMARY KEY,
   data TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
 
--- Counters table
+-- counters (for view counts and everything you want to track anonymously)
 CREATE TABLE IF NOT EXISTS counters (
   counter_id TEXT PRIMARY KEY,
   count INTEGER NOT NULL
 );
 
--- Assets table
 CREATE TABLE IF NOT EXISTS assets (
   asset_id TEXT PRIMARY KEY,
   mime_type TEXT NOT NULL,
@@ -28,9 +27,8 @@ CREATE TABLE IF NOT EXISTS assets (
   data BLOB NOT NULL
 );
 
--- Articles table
 CREATE TABLE IF NOT EXISTS articles (
-  article_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  article_id INTEGER PRIMARY KEY,
   slug TEXT UNIQUE NOT NULL,
   title TEXT NOT NULL,
   teaser TEXT NOT NULL,
@@ -39,3 +37,4 @@ CREATE TABLE IF NOT EXISTS articles (
   published_at DATETIME,
   updated_at DATETIME
 );
+COMMIT;
