@@ -1,9 +1,11 @@
 <script lang="ts">
-	// Data comes from the server load() function
 	export let data: {
-		images: { id: string; filename: string; url: string }[];
+		images?: { id: string; filename: string; url: string }[];
 		uploadMessage?: string;
 	};
+
+	// fallback to empty array
+	const images = data.images ?? [];
 </script>
 
 <h1>Image Uploader</h1>
@@ -21,16 +23,17 @@
 <h2>Uploaded Images</h2>
 
 <div class="image-grid">
-	{#if data.images.length > 0}
-		{#each data.images as image (image.id)}
-			<div class="image-card">
-				<img src={image.url} alt={image.filename} width="200" />
-				<p>{image.filename}</p>
-			</div>
-		{/each}
-	{:else}
-		<p>No images uploaded yet.</p>
-	{/if}
+{#if images.length > 0}
+	{#each images as image (image.id)}
+		<div class="image-card">
+			<img src={image.url} alt={image.filename} width="200" />
+			<p>{image.filename}</p>
+		</div>
+	{/each}
+{:else}
+	<p>No images uploaded yet.</p>
+{/if}
+
 </div>
 
 <style>

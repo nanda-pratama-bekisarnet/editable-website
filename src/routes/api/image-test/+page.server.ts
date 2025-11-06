@@ -6,19 +6,14 @@ export const load = async ({ platform }) => {
 	}
 
 	try {
-		// Fetch all images from your D1 table
 		const { results } = await platform.env.DB.prepare(
 			'SELECT * FROM images ORDER BY created_at DESC'
 		).all();
 
-		return {
-			images: results ?? []
-		};
+		// Always return an array (never undefined)
+		return { images: results ?? [] };
 	} catch (error) {
 		console.error('Error loading images:', error);
-		return {
-			images: [],
-			uploadMessage: 'Failed to load images.'
-		};
+		return { images: [], uploadMessage: 'Failed to load images.' };
 	}
 };
