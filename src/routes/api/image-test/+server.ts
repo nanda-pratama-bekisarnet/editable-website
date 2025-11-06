@@ -13,47 +13,31 @@ export const POST = async ({ request, platform }) => {
 	}
 
 	try {
-		let arrayBuffer: ArrayBuffer;
-		let objectKey: string;
-		let contentType: string;
+		// Convert the file to WebP using the built-in Image API
+		const imageBitmap = await createImageBitmap(file);
+		const canvas = new OffscreenCanvas(imageBitmap.width, imageBitmap.height);
+		const ctx = canvas.getContext('2d')!;
+		ctx.drawImage(imageBitmap, 0, 0);
 
-		// Check if running in Cloudflare Worker (browser APIs available)
-		if (typeof createImageBitmap !== 'undefined' && typeof OffscreenCanvas !== 'undefined') {
-			// Convert to WebP
-			const imageBitmap = await createImageBitmap(file);
-			const canvas = new OffscreenCanvas(imageBitmap.width, imageBitmap.height);
-			const ctx = canvas.getContext('2d')!;
-			ctx.drawImage(imageBitmap, 0, 0);
+		// Encode to WebP
+		const webpBlob = await canvas.convertToBlob({ type: 'image/webp', quality: 0.9 });
+		const arrayBuffer = await webpBlob.arrayBuffer();
 
-			const webpBlob = await canvas.convertToBlob({ type: 'image/webp', quality: 0.9 });
-			arrayBuffer = await webpBlob.arrayBuffer();
-			objectKey = `images/${uuidv4()}.webp`;
-			contentType = 'image/webp';
-		} else {
-			// Local Node.js fallback: upload original file without conversion
-			arrayBuffer = await file.arrayBuffer();
-			const extension = file.name.split('.').pop() || 'bin';
-			objectKey = `images/${uuidv4()}.${extension}`;
-			contentType = file.type;
-		}
-
-		// Upload to R2
-		await platform.env.R2_BUCKET.put(objectKey, arrayBuffer, {
-			httpMetadata: { contentType }
-		});
-
-		// Replace with your R2 public URL
+		// Generate a new UUID-based filename
+		const newFilename = `${uuidv4()}.webp`;
+		const objectKey = `images/${newFilename}`;
 		const publicUrl = `https://pub-d9e98b47ac19405d910faf87fc7b274a.r2.dev/${objectKey}`;
 
-		// Save record to D1
+		// Upload the WebP image to R2
+		await platform.env.R2_BUCKET.put(objectKey, arrayBuffer, {
+			httpMetadata: { contentType: 'image/webp' }
+		});
+
+		// Save the new filename to D1 (do not keep original name)
 		await platform.env.DB.prepare(
 			'INSERT INTO images (filename, url) VALUES (?, ?)'
 		)
-			.bind(
-				// Replace original extension with .webp if converted
-				typeof createImageBitmap !== 'undefined' ? file.name.replace(/\.[^/.]+$/, '.webp') : file.name,
-				publicUrl
-			)
+			.bind(newFilename, publicUrl)
 			.run();
 
 		// Redirect back to /image-test
@@ -62,7 +46,7 @@ export const POST = async ({ request, platform }) => {
 			headers: { Location: '/image-test' }
 		});
 	} catch (error) {
-		console.error('Upload failed:', error);
-		return new Response('Image upload failed.', { status: 500 });
+		console.error('WebP conversion/upload failed:', error);
+		return new Response('Image conversion failed.', { status: 500 });
 	}
 };
