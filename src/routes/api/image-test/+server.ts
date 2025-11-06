@@ -13,40 +13,28 @@ export const POST = async ({ request, platform }) => {
 	}
 
 	try {
-		// Convert the file to WebP using the built-in Image API
-		const imageBitmap = await createImageBitmap(file);
-		const canvas = new OffscreenCanvas(imageBitmap.width, imageBitmap.height);
-		const ctx = canvas.getContext('2d')!;
-		ctx.drawImage(imageBitmap, 0, 0);
-
-		// Encode to WebP
-		const webpBlob = await canvas.convertToBlob({ type: 'image/webp', quality: 0.9 });
-		const arrayBuffer = await webpBlob.arrayBuffer();
-
-		// Generate a new UUID-based filename
-		const newFilename = `${uuidv4()}.webp`;
+		const arrayBuffer = await file.arrayBuffer();
+		const ext = file.name.split('.').pop() || 'bin';
+		const newFilename = `${uuidv4()}.${ext}`;
 		const objectKey = `images/${newFilename}`;
 		const publicUrl = `https://pub-d9e98b47ac19405d910faf87fc7b274a.r2.dev/${objectKey}`;
 
-		// Upload the WebP image to R2
+		// Upload the file as-is
 		await platform.env.R2_BUCKET.put(objectKey, arrayBuffer, {
-			httpMetadata: { contentType: 'image/webp' }
+			httpMetadata: { contentType: file.type || 'application/octet-stream' }
 		});
 
-		// Save the new filename to D1 (do not keep original name)
+		// Save filename and URL in D1
 		await platform.env.DB.prepare(
 			'INSERT INTO images (filename, url) VALUES (?, ?)'
-		)
-			.bind(newFilename, publicUrl)
-			.run();
+		).bind(newFilename, publicUrl).run();
 
-		// Redirect back to /image-test
 		return new Response(null, {
 			status: 303,
 			headers: { Location: '/image-test' }
 		});
 	} catch (error) {
-		console.error('WebP conversion/upload failed:', error);
-		return new Response('Image conversion failed.', { status: 500 });
+		console.error('Upload failed:', error);
+		return new Response('Image upload failed.', { status: 500 });
 	}
 };
