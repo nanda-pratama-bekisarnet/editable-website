@@ -1,16 +1,13 @@
 <script lang="ts">
 	export let data: {
-		images?: { id: string; filename: string; url: string }[];
+		images: { id: string; filename: string; url: string }[];
 		uploadMessage?: string;
 	};
-
-	// fallback to empty array
-	const images = data.images ?? [];
 </script>
 
 <h1>Image Uploader</h1>
 
-<!-- Form posts directly to the API route -->
+<!-- Post directly to the /api/image-test endpoint -->
 <form method="POST" enctype="multipart/form-data" action="/api/image-test">
 	<input type="file" name="imageFile" accept="image/png, image/jpeg" required />
 	<button type="submit">Upload Image</button>
@@ -21,19 +18,17 @@
 {/if}
 
 <h2>Uploaded Images</h2>
-
 <div class="image-grid">
-{#if images.length > 0}
-	{#each images as image (image.id)}
-		<div class="image-card">
-			<img src={image.url} alt={image.filename} width="200" />
-			<p>{image.filename}</p>
-		</div>
-	{/each}
-{:else}
-	<p>No images uploaded yet.</p>
-{/if}
-
+	{#if data.images.length > 0}
+		{#each data.images as image (image.id)}
+			<div class="image-card">
+				<img src={image.url} alt={image.filename} width="200" />
+				<p>{image.filename}</p>
+			</div>
+		{/each}
+	{:else}
+		<p>No images uploaded yet.</p>
+	{/if}
 </div>
 
 <style>
