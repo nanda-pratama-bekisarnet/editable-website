@@ -24,7 +24,7 @@ export const POST = async ({ request, platform }) => {
 		});
 
 		// Replace with your R2 public domain
-		const publicUrl = `https://<YOUR_R2_PUBLIC_URL>/${objectKey}`;
+		const publicUrl = `https://pub-d9e98b47ac19405d910faf87fc7b274a.r2.dev`;
 
 		// Insert into D1
 		await platform.env.DB.prepare(
