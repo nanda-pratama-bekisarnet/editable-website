@@ -1,7 +1,13 @@
 import { v4 as uuidv4 } from 'uuid';
 
 export const POST = async ({ request, platform }) => {
-	if (!platform?.env.R2_BUCKET || !platform?.env.DB || !platform?.env.R2_PUBLIC_URL) {
+	if (
+		!platform ||
+		!platform.env ||
+		!platform.env.R2_BUCKET ||
+		!platform.env.DB ||
+		!platform.env.R2_PUBLIC_URL
+	) {
 		return new Response('Storage bindings not configured.', { status: 500 });
 	}
 
@@ -17,16 +23,12 @@ export const POST = async ({ request, platform }) => {
 		const ext = file.name.split('.').pop() || 'bin';
 		const newFilename = `${uuidv4()}.${ext}`;
 		const objectKey = `images/${newFilename}`;
-
-		// Use R2_PUBLIC_URL from environment
 		const publicUrl = `${platform.env.R2_PUBLIC_URL}/${objectKey}`;
 
-		// Upload the file as-is
 		await platform.env.R2_BUCKET.put(objectKey, arrayBuffer, {
 			httpMetadata: { contentType: file.type || 'application/octet-stream' }
 		});
 
-		// Save filename and URL in D1
 		await platform.env.DB.prepare(
 			'INSERT INTO images (filename, url) VALUES (?, ?)'
 		).bind(newFilename, publicUrl).run();
