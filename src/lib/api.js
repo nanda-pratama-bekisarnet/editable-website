@@ -240,15 +240,21 @@ export async function createOrUpdateCounter(platform, counter_id) {
     return insertResult.results[0] || null;
   }
 }
-
 /**
- * Store asset
+ * Store asset (migrated to R2, but DB unchanged)
  */
 export async function storeAsset(platform, asset_id, file) {
   const db = getDB(platform);
   const arrayBuffer = await file.arrayBuffer();
-  const buffer = new Uint8Array(arrayBuffer);
 
+  // 1️⃣ Upload to R2 instead of storing binary in D1
+  const r2 = platform.env.R2_BUCKET;
+  await r2.put(asset_id, arrayBuffer, {
+    httpMetadata: { contentType: file.type },
+  });
+
+  // 2️⃣ Store metadata in D1 (same SQL, keep structure)
+  // You can put an empty buffer or a small note instead of the actual data
   const sql = `
     INSERT INTO assets (asset_id, mime_type, updated_at, size, data)
     VALUES (?, ?, ?, ?, ?)
@@ -258,18 +264,22 @@ export async function storeAsset(platform, asset_id, file) {
       size = excluded.size,
       data = excluded.data
   `;
+
+  const placeholder = new TextEncoder().encode(`r2://${asset_id}`);
   await db.prepare(sql)
-    .bind(asset_id, file.type, new Date().toISOString(), file.size, buffer)
+    .bind(asset_id, file.type, new Date().toISOString(), file.size, placeholder)
     .run();
 }
 
+
 /**
- * Get asset
+ * Get asset (reads file from R2, metadata from D1)
  */
 export async function getAsset(platform, asset_id) {
   const db = getDB(platform);
+
   const result = await db.prepare(`
-    SELECT asset_id, mime_type, updated_at, size, data
+    SELECT asset_id, mime_type, updated_at, size
     FROM assets
     WHERE asset_id = ?
   `).bind(asset_id).all();
@@ -277,11 +287,20 @@ export async function getAsset(platform, asset_id) {
   const row = result.results[0];
   if (!row) return null;
 
+  // Try to get from R2
+  const r2 = platform.env.R2_BUCKET;
+  const object = await r2.get(asset_id);
+  if (!object) return null;
+
+  const data = await object.arrayBuffer();
+
   return {
     filename: row.asset_id.split('/').slice(-1)[0],
     mimeType: row.mime_type,
     lastModified: row.updated_at,
     size: row.size,
-    data: new Blob([row.data], { type: row.mime_type })
+    data: new Blob([data], { type: row.mime_type }),
+    // Optionally include a public R2 URL if you want to display it directly:
+    url: `${platform.env.R2_PUBLIC_URL}/${asset_id}`
   };
 }
