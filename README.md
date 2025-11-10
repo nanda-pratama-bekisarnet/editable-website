@@ -31,14 +31,14 @@
  
  - Create the database on your cloudflare 
 
-	npx wrangler d1 create <your-database-name>
+	npx wrangler d1 create your-database-name
 
  - Take note the database_name and database_id
  
  - Bind the D1 database by editing the wrangler.jsonc based on previous step
 	- Do Not Change the binding!, keep it as "DB"
-	- "database_name": "<your-database-name>"
-	- "database_id": "<your-database-id>"
+	- "database_name": "your-database-name"
+	- "database_id": "your-database-id"
  
  - Create Cloudflare R2 from the Web UI
     
@@ -48,12 +48,12 @@
 	
  - Bind the R2 bucket by editing the wrangler.jsonc based on previous step
     - Do Not Change the binding!, keep it as "R2_BUCKET"
-	- "bucket_name": "<your-r2-bucket-name>"
-	- "R2_PUBLIC_URL": "<your-r2-public url>"
+	- "bucket_name": "your-r2-bucket-name"
+	- "R2_PUBLIC_URL": "your-r2-public url"
 	
  - Create the database schema using Wrangler CLI
    
-    npx wrangler d1 execute <your-database-name> --remote --file=./sql/schema.sql
+    npx wrangler d1 execute your-database-name --remote --file=./sql/schema.sql
  
  - Check if the database has been imported succesfully
    
