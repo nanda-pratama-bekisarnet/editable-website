@@ -7,6 +7,8 @@
  - I was relying on chatgpt, friends help, and other sources from the Internet to modify the original codes, 
    as I have just basic knowledge of svelte and/or programming.
 
+ - Preview on
+   https://editable-website.pages.dev/
 
 #How To (Incomplete)
 
