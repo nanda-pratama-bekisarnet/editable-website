@@ -34,13 +34,13 @@
       "d1_databases": [
         {
           "binding": "DB",
-          "database_name": "editable_website_prod",
-          "database_id": "YOUR_PRODUCTION_DB_ID"
+          "database_name": "editable-website_prod",
+          "database_id": "48493dfc-2310-4bd8-a1ef-725709993df4"
         }
       ],
       "vars": {
-        "R2_PUBLIC_URL": "https://pub-prod-yourid.r2.dev",
-        "ADMIN_PASSWORD": "supersecureprodpassword"
+        "R2_PUBLIC_URL": "https://pub-34eed42f527b41fcb32e8a9e430bd3db.r2.dev",
+        "ADMIN_PASSWORD": "12345"
       }
     }
   }
