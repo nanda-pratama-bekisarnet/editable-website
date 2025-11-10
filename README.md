@@ -1,7 +1,12 @@
 
-Modified to correctly run on Cloudflare 
+ - Modified to correctly run on Cloudflare 
 
-Find the original code in 
+ - Find the original code in 
 
-https://github.com/michael/editable-website
+        https://github.com/michael/editable-website
+		
+ - Link to preview
+    https://cf-dev3.editable-website.pages.dev
+
+
 
