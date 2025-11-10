@@ -243,7 +243,7 @@ export async function createOrUpdateCounter(platform, counter_id) {
 
 
 /**
- * Store asset in R2, record metadata in D1
+ * Store asset in R2, record metadata in D1 (schema unchanged)
  */
 export async function storeAsset(platform, asset_id, file) {
   const db = getDB(platform);
@@ -255,18 +255,22 @@ export async function storeAsset(platform, asset_id, file) {
     httpMetadata: { contentType: file.type },
   });
 
-  // 2️⃣ Store only metadata in D1 (no binary or placeholder)
+  // 2️⃣ Store metadata in D1 with a small placeholder for `data`
   const sql = `
-    INSERT INTO assets (asset_id, mime_type, updated_at, size)
-    VALUES (?, ?, ?, ?)
+    INSERT INTO assets (asset_id, mime_type, updated_at, size, data)
+    VALUES (?, ?, ?, ?, ?)
     ON CONFLICT (asset_id) DO UPDATE SET
       mime_type = excluded.mime_type,
       updated_at = excluded.updated_at,
-      size = excluded.size
+      size = excluded.size,
+      data = excluded.data
   `;
 
+  // 👇 Minimal placeholder — just a short string turned into a binary blob
+  const placeholder = new TextEncoder().encode(`r2://${asset_id}`);
+
   await db.prepare(sql)
-    .bind(asset_id, file.type, new Date().toISOString(), file.size)
+    .bind(asset_id, file.type, new Date().toISOString(), file.size, placeholder)
     .run();
 }
 
