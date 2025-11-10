@@ -240,34 +240,33 @@ export async function createOrUpdateCounter(platform, counter_id) {
     return insertResult.results[0] || null;
   }
 }
+
+
 /**
- * Store asset (migrated to R2, but DB unchanged)
+ * Store asset in R2, record metadata in D1
  */
 export async function storeAsset(platform, asset_id, file) {
   const db = getDB(platform);
   const arrayBuffer = await file.arrayBuffer();
 
-  // 1️⃣ Upload to R2 instead of storing binary in D1
+  // 1️⃣ Upload the file to R2
   const r2 = platform.env.R2_BUCKET;
   await r2.put(asset_id, arrayBuffer, {
     httpMetadata: { contentType: file.type },
   });
 
-  // 2️⃣ Store metadata in D1 (same SQL, keep structure)
-  // You can put an empty buffer or a small note instead of the actual data
+  // 2️⃣ Store only metadata in D1 (no binary or placeholder)
   const sql = `
-    INSERT INTO assets (asset_id, mime_type, updated_at, size, data)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO assets (asset_id, mime_type, updated_at, size)
+    VALUES (?, ?, ?, ?)
     ON CONFLICT (asset_id) DO UPDATE SET
       mime_type = excluded.mime_type,
       updated_at = excluded.updated_at,
-      size = excluded.size,
-      data = excluded.data
+      size = excluded.size
   `;
 
-  const placeholder = new TextEncoder().encode(`r2://${asset_id}`);
   await db.prepare(sql)
-    .bind(asset_id, file.type, new Date().toISOString(), file.size, placeholder)
+    .bind(asset_id, file.type, new Date().toISOString(), file.size)
     .run();
 }
 
