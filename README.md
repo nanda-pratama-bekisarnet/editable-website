@@ -69,8 +69,16 @@
 
  --- Deploy to Cloudflare
  
- - Create new pages and link your github repo main branch to your newly created page
- - You should see it bulding corretly and available at certail url provided by cloudflare
+ - Link your github repo
+
+ - Create new application, 
+    - Create new pages (not worker) 
+	- Select your repo
+	- Select main branch for production
+	- Select SvelteKit framework
+
+ - You should see it bulding corretly and available at certain url provided by cloudflare
+
  - ..........
  
 	
