@@ -8,7 +8,8 @@
    as I have just basic knowledge of svelte and/or programming.
 
  - Preview on
-   https://editable-website.pages.dev/
+ 
+        https://editable-website.pages.dev/
 
 #How To (Incomplete)
 
