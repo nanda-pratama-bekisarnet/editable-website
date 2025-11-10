@@ -2,8 +2,11 @@
   "name": "editable_website",
   "compatibility_date": "2025-01-01",
   "pages_build_output_dir": ".svelte-kit/cloudflare",
+  
+  //Separates variable/environtment for Production(main) and Preview( all other branch )
 
   // 🧪 Local dev + preview (shared)
+  // If you use github branch for development or preview on the cloudflare set it here 
   "r2_buckets": [
     {
       "binding": "R2_BUCKET",
@@ -23,6 +26,7 @@
   },
 
   // 🌐 Production overrides
+  // This if for cloudflare production, for the main branch of your github  
   "env": {
     "production": {
       "r2_buckets": [

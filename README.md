@@ -11,7 +11,7 @@
  
         https://editable-website.pages.dev/
 
-#How To (Incomplete)
+#How To (Incomplete) 
 
 --- Prepare
 
@@ -69,7 +69,7 @@
 
  --- Deploy to Cloudflare
  
- - Create new pages and link your github repo to your newly created page
+ - Create new pages and link your github repo main branch to your newly created page
  - You should see it bulding corretly and available at certail url provided by cloudflare
  - ..........
  
