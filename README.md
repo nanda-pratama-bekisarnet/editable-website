@@ -1,5 +1,5 @@
 
- - Modified to correctly run on Cloudflare 
+ - Modified to correctly run on Cloudflare Pages, D1, and R2
 
  - Find the original code in 
 
